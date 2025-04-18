@@ -1,153 +1,145 @@
-📋 Real-Time Standup Assistant
+# 🤖 Standup Assistant
 
-A real-time, agent-powered standup reporting system built with:
-	•	🧠 OpenAI LLM (or any LLM)
-	•	🛰 Server-Sent Events (SSE)
-	•	🧩 Message-Channel Protocol (MCP)-style event flow
-	•	🐍 Python (FastAPI + CLI agent)
+A lightweight real-time standup bot that collects team updates via CLI, summarizes them using OpenAI, and posts the summary to Slack.
 
-⸻
+---
 
-🧠 Overview
+## 💡 Features
 
-This project lets teams submit asynchronous standup updates (yesterday/today/blockers). These updates stream to all subscribers in real time, are summarized by an AI agent, and the summary is broadcast back.
+- Submit standup updates via terminal
+- Server with event-streaming via FastAPI
+- Auto-summarizes standups using OpenAI (every 30 seconds)
+- Posts summary to Slack
+- Logs raw updates and summaries to disk (`.jsonl` + `.md`)
 
-No meetings. No refresh buttons. Just clean, agentic, real-time collaboration.
+---
 
-⸻
+## 🛠 Project Structure
 
-⚙️ How It Works
-
-🔁 The Flow
-
-[User] --> POST /standup --> [FastAPI Server]
-                                |
-                                v
-                        GET /standup (SSE)
-                                |
-                            [Agent]
-                          |   |   |
-      +----- Summary via OpenAI   |
-      |                           |
-[POST Summary] <------------------+
-                                |
-                            [SSE Stream Output]
-
-🧩 Message Types (MCP-Inspired)
-	•	@message: standup_update — when a user submits their status
-	•	@message: standup_summary — when the agent summarizes them
-
-These are sent to a common channel /standup.
-
-⸻
-
-📁 File Structure
-
+```
 standup-assistant/
 ├── agent/
-│   ├── listener.py         # Listens to updates
-│   └── summarizer.py       # Buffers + sends to LLM + emits summary
+│   ├── listener.py         # Listens to server events and handles summaries
+│   └── summarizer.py       # OpenAI summarizer logic + Slack post
 ├── client/
-│   └── submit.py           # CLI tool to submit standup
-├── server.py               # FastAPI + SSE-based channel
-├── .env                    # OpenAI API key
-├── requirements.txt        # Dependencies
-└── README.md               # You're reading it!
+│   └── submit.py           # CLI form to submit your standup
+├── logs/
+│   ├── standup_updates.jsonl  # All raw updates
+│   └── standup_summaries.md   # All summaries
+├── server.py              # FastAPI SSE server
+├── .env                   # API keys (DO NOT COMMIT)
+├── requirements.txt       # Python dependencies
+└── README.md
+```
 
+---
 
+## ⚙️ Setup
 
-⸻
+1. **Clone the repo**
 
-🛠 Setup
-
-# Clone and enter project
+```bash
+git clone https://github.com/YOUR_USERNAME/standup-assistant.git
 cd standup-assistant
+```
 
-# Create virtual environment
+2. **Create a virtual environment and install dependencies**
+
+```bash
 python3 -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-
-# Install dependencies
+source .venv/bin/activate
 pip install -r requirements.txt
+```
 
-# Add your API key
-echo "OPENAI_API_KEY=sk-..." > .env
+3. **Add your secrets to `.env`**
 
+```env
+OPENAI_API_KEY=your-openai-key
+SLACK_API_TOKEN=your-slack-bot-token
+SLACK_CHANNEL=#standup-daily
+```
 
+4. **Run the FastAPI server**
 
-⸻
-
-🚀 Run the System
-
-1. Run the server
-
+```bash
 python3 -m uvicorn server:app --port 3333
+```
 
-2. Run the agent
+---
 
+## 🚀 Usage
+
+### 1. Start the summarizer listener
+```bash
 python -m agent.listener
+```
 
-3. Submit standups
+This listens to new standups, appends them to a buffer, and every 30 seconds posts a summary if there’s anything to summarize.
 
-Run 3 times to trigger summary:
+---
 
+### 2. Submit a standup from any team member
+```bash
 python client/submit.py
+```
 
-4. (Optional) Watch live stream
+You'll be prompted:
 
-curl http://localhost:3333/standup
+```
+Name: advait
+What did you do yesterday? fixed bugs
+What will you do today? code review
+Any blockers? none
+```
 
+---
 
+### 3. Slack Integration
 
-⸻
+After every 30 seconds (or customizable time), a formatted summary is posted to your configured Slack channel:
 
-🧠 agent/summarizer.py (Core Logic)
+```
+*Daily Standup Summary:*
+Advait fixed bugs yesterday and is doing code review today. No blockers.
+```
 
-buffer = []
+---
 
-# On receiving an event
-buffer.append(event)
+## 📝 Logs
 
-if len(buffer) >= 3:
-    prompt = build_summary_prompt(buffer)
-    summary = call_openai(prompt)
+- **Raw updates**: `logs/standup_updates.jsonl`
+- **Summaries**: `logs/standup_summaries.md`
 
-    requests.post("http://localhost:3333/standup", json={
-        "@message": "standup_summary",
-        "summary": summary
-    })
-    buffer.clear()
+---
 
-This simulates an MCP agent: reactive, stateless, and communicative.
+## 🔐 Secrets & Git
 
-⸻
+Make sure to add `.env` to your `.gitignore`:
 
-✅ MCP Compatibility
+```bash
+echo ".env" >> .gitignore
+```
 
-MCP Concept	This Project Does It?
-Channels	✅ /standup via FastAPI
-@message/event	✅ standup_update + standup_summary
-SSE (Streaming)	✅ Real-time via SSE
-Agent model	✅ LLM listens + responds
+Never commit secrets to GitHub! Use `.env.example` to share structure.
 
+---
 
+## 📦 Future Ideas
 
-⸻
+- Web dashboard to view all updates/summaries
+- GitHub bot integration
+- Voice-based daily check-in (via Twilio or WebRTC)
+- Personalized reminders for users
+- AI-generated blockers resolution suggestions
 
-🔮 Ideas to Extend
-	•	🔔 Slack notifications
-	•	💾 Save summaries to SQLite or Markdown
-	•	🧠 Use local LLM via Ollama (Llama 3)
-	•	📊 React or Streamlit dashboard for team
-	•	🧪 Blocker analysis and trends
+---
 
-⸻
+## 🤝 Contributions
 
-💬 Summary
+Open to PRs! Feel free to fork and improve the summarization, Slack formatting, or add new features!
 
-This is a real-world, real-time MCP-style AI agent app:
-	•	Built with simple Python tools
-	•	Agent reacts to live streams
-	•	Summarizes, posts back, and completes the loop
+---
 
-You’re ready to scale this to a full agentic system 🔥
+## 📄 License
+
+MIT License.
