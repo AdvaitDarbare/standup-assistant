@@ -12,6 +12,7 @@ A real-time standup bot powered by OpenAI, ChromaDB, and Slack. Collects team up
 - Slack bot integration for posting summaries
 - Slack slash command (`/standup-query`) to query standup memory
 - View live streaming summaries via FastAPI SSE
+- Streamlit dashboard to group standups by date
 - Logs raw updates and summaries to disk (`.jsonl`, `.md`)
 
 ---
@@ -30,6 +31,7 @@ standup-assistant/
 ├── chroma.py                 # Inspect ChromaDB contents
 ├── query_agent.py            # CLI: Query vector memory
 ├── server.py                 # FastAPI server + Slack command endpoint
+├── dashboard.py              # Streamlit dashboard UI
 ├── .env                      # API keys (DO NOT COMMIT)
 ├── requirements.txt          # Python dependencies
 └── README.md
@@ -133,7 +135,7 @@ echo ".env" >> .gitignore
 
 ## 🧠 Future Enhancements
 
-- Web dashboard
+- Web dashboard (✅ done)
 - Llama3 support via Ollama
 - Slack thread responses
 - LangGraph memory flows
