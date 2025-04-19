@@ -1,16 +1,18 @@
 # 🤖 Standup Assistant
 
-A lightweight real-time standup bot that collects team updates via CLI, summarizes them using OpenAI, and posts the summary to Slack.
+A real-time standup bot powered by OpenAI, ChromaDB, and Slack. Collects team updates via CLI or API, stores them in vector memory, auto-summarizes them, and enables querying via Slack.
 
 ---
 
 ## 💡 Features
 
-- Submit standup updates via terminal
-- Server with event-streaming via FastAPI
-- Auto-summarizes standups using OpenAI (every 30 seconds)
-- Posts summary to Slack
-- Logs raw updates and summaries to disk (`.jsonl` + `.md`)
+- Submit standup updates via CLI or API
+- Store structured updates in ChromaDB (vector DB)
+- Auto-summarize using OpenAI every 60s
+- Slack bot integration for posting summaries
+- Slack slash command (`/standup-query`) to query standup memory
+- View live streaming summaries via FastAPI SSE
+- Logs raw updates and summaries to disk (`.jsonl`, `.md`)
 
 ---
 
@@ -19,16 +21,17 @@ A lightweight real-time standup bot that collects team updates via CLI, summariz
 ```
 standup-assistant/
 ├── agent/
-│   ├── listener.py         # Listens to server events and handles summaries
-│   └── summarizer.py       # OpenAI summarizer logic + Slack post
+│   ├── listener.py           # Background summarizer + Slack post
 ├── client/
-│   └── submit.py           # CLI form to submit your standup
+│   └── submit.py             # CLI form to submit standups
 ├── logs/
-│   ├── standup_updates.jsonl  # All raw updates
-│   └── standup_summaries.md   # All summaries
-├── server.py              # FastAPI SSE server
-├── .env                   # API keys (DO NOT COMMIT)
-├── requirements.txt       # Python dependencies
+│   ├── standup_updates.jsonl
+│   └── standup_summaries.md
+├── chroma.py                 # Inspect ChromaDB contents
+├── query_agent.py            # CLI: Query vector memory
+├── server.py                 # FastAPI server + Slack command endpoint
+├── .env                      # API keys (DO NOT COMMIT)
+├── requirements.txt          # Python dependencies
 └── README.md
 ```
 
@@ -65,26 +68,32 @@ SLACK_CHANNEL=#standup-daily
 python3 -m uvicorn server:app --port 3333
 ```
 
+5. **(Optional) Start ngrok for Slack external access**
+```bash
+ngrok http 3333
+```
+
+Copy the forwarding URL into your Slack slash command config.
+
 ---
 
 ## 🚀 Usage
 
 ### 1. Start the summarizer listener
 ```bash
-python -m agent.listener
+python3 -m agent.listener
 ```
 
-This listens to new standups, appends them to a buffer, and every 30 seconds posts a summary if there’s anything to summarize.
+This listens to new standups and summarizes every 60 seconds.
 
 ---
 
-### 2. Submit a standup from any team member
+### 2. Submit a standup
 ```bash
-python client/submit.py
+python3 client/submit.py
 ```
 
-You'll be prompted:
-
+You’ll be prompted to enter:
 ```
 Name: advait
 What did you do yesterday? fixed bugs
@@ -94,52 +103,51 @@ Any blockers? none
 
 ---
 
-### 3. Slack Integration
+### 3. Query from Slack
 
-After every 30 seconds (or customizable time), a formatted summary is posted to your configured Slack channel:
+In Slack:
+```bash
+/standup-query who worked on sql?
+```
 
-```
-*Daily Standup Summary:*
-Advait fixed bugs yesterday and is doing code review today. No blockers.
-```
+You’ll get an AI-generated answer from standup memory.
 
 ---
 
-## 📝 Logs
+## 📊 Logs & Vector Memory
 
-- **Raw updates**: `logs/standup_updates.jsonl`
-- **Summaries**: `logs/standup_summaries.md`
+- `logs/standup_updates.jsonl` — raw submissions
+- `logs/standup_summaries.md` — markdown summaries
+- `chroma_data/` — vector store via ChromaDB
 
 ---
 
 ## 🔐 Secrets & Git
 
-Make sure to add `.env` to your `.gitignore`:
-
+Make sure `.env` is in `.gitignore`:
 ```bash
 echo ".env" >> .gitignore
 ```
 
-Never commit secrets to GitHub! Use `.env.example` to share structure.
-
 ---
 
-## 📦 Future Ideas
+## 🧠 Future Enhancements
 
-- Web dashboard to view all updates/summaries
-- GitHub bot integration
-- Voice-based daily check-in (via Twilio or WebRTC)
-- Personalized reminders for users
-- AI-generated blockers resolution suggestions
+- Web dashboard
+- Llama3 support via Ollama
+- Slack thread responses
+- LangGraph memory flows
+- Slack DMs to collect check-ins
+- Query analytics and trends
 
 ---
 
 ## 🤝 Contributions
 
-Open to PRs! Feel free to fork and improve the summarization, Slack formatting, or add new features!
+Open to PRs! Add a new feature, LLM model, or integration!
 
 ---
 
 ## 📄 License
 
-MIT License.
+MIT License
