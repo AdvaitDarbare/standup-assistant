@@ -1,88 +1,100 @@
 import os
 import time
 import threading
+import json
+from datetime import datetime
 from openai import OpenAI
 import requests
 from dotenv import load_dotenv
-import json
 from chromadb import PersistentClient
 from sentence_transformers import SentenceTransformer
-from datetime import datetime
 from slack_sdk import WebClient
 
-
 load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key)
-chroma = PersistentClient(path="chroma_data")
+
+# OpenAI + Chroma + embedder
+client   = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+chroma   = PersistentClient(path="chroma_data")
 collection = chroma.get_or_create_collection("standup_memory")
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
+# In‑memory buffer of incoming events
 buffer = []
 
 def handle_standup(event):
     global buffer
-    print(f"📥 Received standup from {event['user']}")
+    # Ensure we have a timestamp
+    ts = event.get("timestamp") or datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    event["timestamp"] = ts
+
+    print(f"📥 Received standup from {event['user']} at {ts}")
     buffer.append(event)
 
-    # ✅ Save each update immediately
-    with open("logs/standup_updates.json", "a") as f:
+    # 1) Append to raw‑log JSONL
+    with open("logs/standup_updates.jsonl", "a") as f:
         f.write(json.dumps(event) + "\n")
-    doc_id = f"{event['user']}-{int(time.time())}"
-    document = f"{event['user']} - Yesterday: {event['yesterday']}. Today: {event['today']}. Blockers: {event['blockers']}"
+
+    # 2) Store into Chroma with metadata
+    doc_id   = f"{event['user']}-{int(time.time())}"
+    document = (
+        f"[{ts}] {event['user']} – Yesterday: {event['yesterday']}; "
+        f"Today: {event['today']}; Blockers: {event['blockers']}"
+    )
     embedding = embedder.encode(document).tolist()
-    collection.add(documents=[document], embeddings=[embedding], ids=[doc_id])
+    collection.add(
+        documents=[document],
+        embeddings=[embedding],
+        ids=[doc_id],
+        metadatas=[{"timestamp": ts}],
+    )
     print("✅ Added to Chroma:", document)
 
-def summarize_every_30_seconds():
+# Background summarizer runs every 60 seconds
+def summarize_every_60_seconds():
     global buffer
-
     while True:
-        time.sleep(60)  # ⏱ Wait 60 seconds
+        time.sleep(60)
+        if not buffer:
+            continue
 
-        if buffer:
-            print("⏰ 60 seconds passed. Generating summary...")
+        # Build the prompt
+        updates = "\n".join(
+            f"[{e['timestamp']}] {e['user']}: Yesterday: {e['yesterday']} | Today: {e['today']} | Blockers: {e['blockers']}"
+            for e in buffer
+        )
 
-            updates = "\n".join(
-                [f"{e['user']}:\nYesterday: {e['yesterday']}\nToday: {e['today']}\nBlockers: {e['blockers']}\n" for e in buffer]
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": f"Summarize this team's standup:\n\n{updates}"}],
             )
+            summary = resp.choices[0].message.content.strip()
+            print("🧠 Summary:\n", summary)
 
-            try:
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
-                    messages=[{
-                        "role": "user",
-                        "content": f"Summarize this team's standup:\n\n{updates}"
-                    }]
+            # 3) Emit summary into SSE stream
+            requests.post("http://localhost:3333/standup", json={
+                "@message": "standup_summary",
+                "summary": summary,
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            })
+
+            # 4) Append to Markdown log
+            with open("logs/standup_summaries.md", "a") as f:
+                f.write(f"\n## Summary ({datetime.utcnow().strftime('%Y-%m-%d %H:%M')}):\n{summary}\n")
+
+            # 5) Post to Slack
+            slack_token   = os.getenv("SLACK_API_TOKEN")
+            slack_channel = os.getenv("SLACK_CHANNEL", "#general")
+            if slack_token:
+                WebClient(token=slack_token).chat_postMessage(
+                    channel=slack_channel,
+                    text=f"*Daily Standup Summary:*\n{summary}"
                 )
-                summary = response.choices[0].message.content.strip()
-                print("🧠 Summary:\n", summary)
+                print("✅ Posted to Slack!")
+        except Exception as e:
+            print("❌ Error summarizing:", e)
+        finally:
+            buffer.clear()
 
-                # Post to FastAPI event stream
-                requests.post("http://localhost:3333/standup", json={
-                    "@message": "standup_summary",
-                    "summary": summary
-                })
-
-                # 📝 Save Markdown summary
-                with open("logs/standup_summaries.md", "a") as f:
-                    f.write(f"\n## Summary ({datetime.now().strftime('%Y-%m-%d %H:%M')}):\n{summary}\n")
-
-                # ✅ Post to Slack
-                slack_token = os.getenv("SLACK_API_TOKEN")
-                slack_channel = os.getenv("SLACK_CHANNEL", "#general")
-                if slack_token:
-                    slack_client = WebClient(token=slack_token)
-                    slack_client.chat_postMessage(channel=slack_channel, text=f"*Daily Standup Summary:*\n{summary}")
-                    print("✅ Posted to Slack!")
-                else:
-                    print("⚠️ SLACK_API_TOKEN not set. Skipping Slack post.")
-
-                # Clear buffer after summary
-                buffer.clear()
-
-            except Exception as e:
-                print(f"❌ Error summarizing or posting: {e}")
-
-# Start background thread
-threading.Thread(target=summarize_every_30_seconds, daemon=True).start()
+# Kick off the background thread on import
+threading.Thread(target=summarize_every_60_seconds, daemon=True).start()

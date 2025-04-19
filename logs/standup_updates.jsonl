@@ -1,17 +1,14 @@
-{"@message": "standup_update", "user": "advait", "yesterday": "ui", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "jim", "yesterday": "backend", "today": "testing", "blockers": "ui"}
-{"@message": "standup_update", "user": "bob", "yesterday": "ui", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "john", "yesterday": "frontend", "today": "designing", "blockers": "none"}
-{"@message": "standup_update", "user": "adam", "yesterday": "ui", "today": "backend", "blockers": "none"}
-{"@message": "standup_update", "user": "arthur", "yesterday": "fixing sql logic", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "andrew", "yesterday": "ui", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "andy", "yesterday": "backend", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "timmy", "yesterday": "yi", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "jonny", "yesterday": "testing", "today": "none", "blockers": "none"}
-{"@message": "standup_update", "user": "timmy", "yesterday": "yi", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "jonny", "yesterday": "testing", "today": "none", "blockers": "none"}
-{"@message": "standup_update", "user": "jeff", "yesterday": "ui", "today": "backedn", "blockers": "none"}
-{"@message": "standup_update", "user": "timmthoty", "yesterday": "ui", "today": "backend", "blockers": "none"}
-{"@message": "standup_update", "user": "Tim", "yesterday": "ui", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "john", "yesterday": "ui", "today": "testing", "blockers": "none"}
-{"@message": "standup_update", "user": "tim", "yesterday": "backend", "today": "testing", "blockers": "none"}
+{"@message": "standup_update", "user": "Advait", "yesterday": "sql injection", "today": "testing", "blockers": "none"}
+{"@message": "standup_update", "user": "Bob", "yesterday": "ui", "today": "design", "blockers": "none"}
+{"@message": "standup_update", "user": "Tim", "yesterday": "worked on financials", "today": "documentation: numbers", "blockers": "none"}
+{"@message": "standup_update", "user": "Ray", "yesterday": "met interns", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:33:46Z"}
+{"@message": "standup_update", "user": "Ken", "yesterday": "met interns", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:37:19Z"}
+{"@message": "standup_update", "user": "Ken", "yesterday": "design ads", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:41:17Z"}
+{"@message": "standup_update", "user": "Ken", "yesterday": "worked with intern", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:44:07Z"}
+{"@message": "standup_update", "user": "Ken", "yesterday": "worked with marketing", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:45:27Z"}
+{"@message": "standup_update", "user": "Ken", "yesterday": "worked with intern project", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:51:58Z"}
+{"@message": "standup_update", "user": "Alo", "yesterday": "marketing", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:53:47Z"}
+{"@message": "standup_update", "user": "Alo", "yesterday": "HR", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:53:58Z"}
+{"@message": "standup_update", "user": "Bo", "yesterday": "marketing", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:58:19Z"}
+{"@message": "standup_update", "user": "Bo", "yesterday": "HR", "today": "none", "blockers": "none", "timestamp": "2025-04-19T08:58:26Z"}
+{"@message": "standup_update", "user": "Andy", "yesterday": "met boss", "today": "none", "blockers": "none", "timestamp": "2025-04-19T09:11:12Z"}
