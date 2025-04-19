@@ -5,12 +5,18 @@ from openai import OpenAI
 import requests
 from dotenv import load_dotenv
 import json
+from chromadb import PersistentClient
+from sentence_transformers import SentenceTransformer
 from datetime import datetime
 from slack_sdk import WebClient
+
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
+chroma = PersistentClient(path="chroma_data")
+collection = chroma.get_or_create_collection("standup_memory")
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 buffer = []
 
@@ -22,15 +28,20 @@ def handle_standup(event):
     # ✅ Save each update immediately
     with open("logs/standup_updates.json", "a") as f:
         f.write(json.dumps(event) + "\n")
+    doc_id = f"{event['user']}-{int(time.time())}"
+    document = f"{event['user']} - Yesterday: {event['yesterday']}. Today: {event['today']}. Blockers: {event['blockers']}"
+    embedding = embedder.encode(document).tolist()
+    collection.add(documents=[document], embeddings=[embedding], ids=[doc_id])
+    print("✅ Added to Chroma:", document)
 
 def summarize_every_30_seconds():
     global buffer
 
     while True:
-        time.sleep(30)  # ⏱ Wait 30 seconds
+        time.sleep(60)  # ⏱ Wait 60 seconds
 
         if buffer:
-            print("⏰ 30 seconds passed. Generating summary...")
+            print("⏰ 60 seconds passed. Generating summary...")
 
             updates = "\n".join(
                 [f"{e['user']}:\nYesterday: {e['yesterday']}\nToday: {e['today']}\nBlockers: {e['blockers']}\n" for e in buffer]
